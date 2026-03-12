@@ -38,10 +38,15 @@ inputs:
   terraformuploadfile:
     description: 'Terraformuploadfile name'
     required: false
+  bucket:
+    description: 'Terraformuploadfile bucket'
+    required: false
+    default: 'github-terraform-artifacts'
+
 runs:
   using: "composite"
   steps:
-    - uses: hashicorp/setup-terraform@v3
+    - uses: hashicorp/setup-terraform@v4
     - id: terraform
       run: |
         $terraformupload = "${{ inputs.upload }}"
@@ -49,25 +54,24 @@ runs:
           $terraformuploadfile = "${{ inputs.terraformuploadfile }}"
           Write-Host "Upload from = ./state/$terraformuploadfile"
           Copy-Item "./state/$terraformuploadfile" ./terraform.tfstate
-          openssl enc -in ./terraform.tfstate -aes-256-cbc -pbkdf2 -pass pass:"${{ inputs.encryptionkey }}" -out ./terraform.tfstate.enc
           exit 0
         }
+
         $environment = "${{ inputs.environment }}"
         $terraformstatefile = "${{ inputs.terraformstatefile }}"
+        $statefile = "terraform.tfstate"
         Write-Host "Use terraformstatefile = $terraformstatefile"
-        $Repo = "${{ github.repository }}"
-        $BaseUri = "https://api.github.com"
-        $ArtifactUri = "$BaseUri/repos/$Repo/actions/artifacts?name=$terraformstatefile&per_page=10"
-        $Token = "${{ github.token }}" | ConvertTo-SecureString -AsPlainText
-        $RestResponse = Invoke-RestMethod -Authentication Bearer -Uri $ArtifactUri -Token $Token | Select-Object -ExpandProperty artifacts
-        if ($RestResponse){
-          $MostRecentArtifactURI = $RestResponse | Sort-Object -Property created_at -Descending | where name -eq $terraformstatefile | Select-Object -First 1 | Select-Object -ExpandProperty archive_download_url
-          Write-Host "Most recent artifact URI = $MostRecentArtifactURI"
-          if ($MostRecentArtifactURI){
-            Invoke-RestMethod -uri $MostRecentArtifactURI -Token $Token -Authentication bearer -outfile ./state.zip
-            Expand-Archive ./state.zip
-            openssl enc -d -in ./state/terraform.tfstate.enc -aes-256-cbc -pbkdf2 -pass pass:"${{ inputs.encryptionkey }}" -out ./terraform.tfstate
-          }
+        $repo = "${{ github.repository }}"
+        $bucketname = "${{ inputs.bucket }}"
+        $zipname = "state.zip"
+        gcloud storage cp --verbosity=none "gs://${bucketname}/${repo}/${terraformstatefile}" "${zipname}"
+
+        if (Test-Path $zipname) {
+          # Decompress statefile
+          Expand-Archive $zipname
+          Copy-Item "./state/${statefile}" -Destination $statefile
+        } else {
+          Write-Host "No statefile present"
         }
 
         terraform init
@@ -121,10 +125,30 @@ runs:
       shell: pwsh
     - name: Archive artifacts
       if: success() || failure()
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ inputs.terraformstatefile }}
-        path: ./terraform.tfstate.enc
+      run: |
+        $environment = "${{ inputs.environment }}"
+        $terraformstatefile = "${{ inputs.terraformstatefile }}"
+        $statefile = "terraform.tfstate"
+        $repo = "${{ github.repository }}"
+        $bucketname = "${{ inputs.bucket }}"
+        $zipname = "state.zip"
+
+        if (Test-Path $statefile) {
+          if (Test-Path $zipname) {
+            $date_str = "{0:s}" -f (get-date)
+            gcloud storage cp "gs://${bucketname}/${repo}/${terraformstatefile}" "gs://${bucketname}/${repo}/archive/${terraformstatefile}_${date_str}"
+          }
+
+          # Compress statefile
+          Compress-Archive -Force -LiteralPath $statefile -CompressionLevel Optimal -DestinationPath $zipname
+
+          gcloud storage cp $zipname "gs://${bucketname}/${repo}/${terraformstatefile}"
+        } else {
+          Write-Host "No statefile"
+        }
+
+      shell: pwsh
+
 branding:
   icon: 'cloud'
   color: 'gray-dark'
