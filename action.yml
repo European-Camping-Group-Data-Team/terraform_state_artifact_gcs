@@ -1,10 +1,7 @@
-name: 'terraform_state_artifact'
+name: 'terraform_state_artifact_gcs'
 description: 'Sets up and runs Terraform, and creates an encrypted Terraform artifact'
 author: 'Sturla Bragason'
 inputs:
-  encryptionkey:
-    description: 'Used to read artifact and as a key to encrypt and decrypt the state file artifact'
-    required: true
   upload:
     description: 'upload state file'
     required: false
