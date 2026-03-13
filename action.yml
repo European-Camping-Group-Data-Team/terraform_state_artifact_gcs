@@ -101,11 +101,12 @@ runs:
     - name: Archive artifacts
       if: success() || failure()
       run: |
+        $statefile = "terraform.tfstate"
+
         # Statefile present?
         if (Test-Path $statefile) {
           # Set variables
           $terraformstatefile = "${{ inputs.terraformstatefile }}"
-          $statefile = "terraform.tfstate"
           $repo = "${{ github.repository }}"
           $bucketname = "${{ inputs.bucket }}"
           $zipname = "state.zip"
