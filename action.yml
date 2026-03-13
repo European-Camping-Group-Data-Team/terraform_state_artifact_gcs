@@ -61,6 +61,7 @@ runs:
         $repo = "${{ github.repository }}"
         $bucketname = "${{ inputs.bucket }}"
         $zipname = "state.zip"
+
         Write-Host "Copying gs://${bucketname}/${repo}/${terraformstatefile} to ${zipname}"
         gcloud storage cp --verbosity=none --no-user-output-enabled "gs://${bucketname}/${repo}/${terraformstatefile}" "${zipname}"
 
@@ -70,7 +71,7 @@ runs:
           Expand-Archive $zipname
           Copy-Item "./state/${statefile}" -Destination $statefile
         } else {
-          Write-Host "No statefile present"
+          Write-Host "No previous statefile found"
         }
 
         terraform init
@@ -132,7 +133,7 @@ runs:
           Write-Host "Copying $zipname to gs://${bucketname}/${repo}/${terraformstatefile}"
           gcloud storage cp --no-user-output-enabled $zipname "gs://${bucketname}/${repo}/${terraformstatefile}"
         } else {
-          Write-Host "No statefile"
+          Write-Host "No statefile to upload"
         }
 
       shell: pwsh
