@@ -1,10 +1,7 @@
 # terraform_state_artifact 
-[![Terraform State Artifact](https://github.com/sturlabragason/terraform_state_artifact/actions/workflows/terraform.yml/badge.svg)](https://github.com/sturlabragason/terraform_state_artifact/actions/workflows/terraform.yml)
-  `#actionshackathon21`
+The [`European-Camping-Group-Data-Team/terraform_state_artifact_gcs`](https://github.com/European-Camping-Group-Data-Team/terraform_state_artifact_gcs) action is a composite action that stores your Terraform state file as a google storage artifact and downloads and the state on subsequent runs. Built-in are the actions: [`hashicorp/setup-terraform@v4`](https://github.com/hashicorp/setup-terraform).
 
-The [`European-Camping-Group-Data-Team/terraform_state_artifact_gcs`](https://github.com/European-Camping-Group-Data-Team/terraform_state_artifact_gcs) action is a composite action that stores your Terraform state file as an google storage artifact and downloads and the state on subsequent runs. Built-in are the actions: [`hashicorp/setup-terraform@v4`](https://github.com/hashicorp/setup-terraform).
-
-## [:rocket: What this action does: :rocket:](https://dev.to/sturlabragason/terraformstateartifact-github-action-keeping-the-statefile-with-to-your-code-4d3b)
+## :rocket: What this action does: :rocket:
 
 - 🛠️ It installs terraform using [`hashicorp/setup-terraform@v4`](https://github.com/hashicorp/setup-terraform).
 - :inbox_tray: Using [environment variables](https://docs.github.com/en/actions/learn-github-actions/environment-variables) it downloads the most recent [workflow artifact](https://docs.github.com/en/actions/advanced-guides/storing-workflow-data-as-artifacts) called `terraformstatefile`.
@@ -14,9 +11,7 @@ The [`European-Camping-Group-Data-Team/terraform_state_artifact_gcs`](https://gi
   - This can be skipped by setting the optional variable `apply` to `false`.
 - 🗃️ If all is well then Terraform has now produced a statefile `./terraform.tfstate`.
     - 🤫 I'd recommend getting this from a [`${{secret.variable}}`](https://docs.github.com/en/actions/security-guides/encrypted-secrets) since the output isn't hidden.
-- 💾 Finally the new statefile is uploaded as an artifact!
-#### - :tada: Lather, rinse, repeat! :tada:
-
+- 💾 Finally the new statefile is uploaded as an artifact to google storage!
 
 ## Usage v1
 
