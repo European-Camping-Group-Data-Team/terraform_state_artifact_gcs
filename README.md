@@ -6,11 +6,10 @@ The [`European-Camping-Group-Data-Team/terraform_state_artifact_gcs`](https://gi
 - 🛠️ It installs terraform using [`hashicorp/setup-terraform@v4`](https://github.com/hashicorp/setup-terraform).
 - :inbox_tray: Using [environment variables](https://docs.github.com/en/actions/learn-github-actions/environment-variables) it downloads the most recent [workflow artifact](https://docs.github.com/en/actions/advanced-guides/storing-workflow-data-as-artifacts) called `terraformstatefile`.
   - If no artifact with that name is found (maybe it's your first run) then it proceeds with the following.
-- :building_construction: It then proceeds to run `terraform plan` with any flags from the optional variable `custom_plan_flags`
+- :building_construction: If no apply action is defined it runs `terraform plan` with any flags from the optional variable `custom_plan_flags`
 - 🏢 Next it runs `terraform apply` with any flags from the optional variable`custom_apply_flags`.
   - This can be skipped by setting the optional variable `apply` to `false`.
 - 🗃️ If all is well then Terraform has now produced a statefile `./terraform.tfstate`.
-    - 🤫 I'd recommend getting this from a [`${{secret.variable}}`](https://docs.github.com/en/actions/security-guides/encrypted-secrets) since the output isn't hidden.
 - 💾 Finally the new statefile is uploaded as an artifact to google storage!
 
 ## Usage v1
@@ -71,7 +70,3 @@ The action supports the following inputs:
 | `custom_plan_flags`         | (optional) Add a custom flag to the `terraform plan` command.               | `''`  |
 | `custom_apply_flags`         | (optional) Add a custom flag to the `terraform apply` command.               | `''`  |
 | `custom_destroy_flags`         | (optional) Add a custom flag to the `terraform apply -destroy` command.               | `''`  |
-
-## License
-
-[GNU General Public License v3.0](https://github.com/sturlabragason/terraform_state_artifact/blob/main/LICENSE)
