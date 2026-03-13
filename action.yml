@@ -66,7 +66,7 @@ runs:
 
         if (Test-Path $zipname) {
           # Decompress statefile
-          Write-Host "Decompress statefile to ${statefile}"
+          Write-Host "Decompress ${zipname} to ${statefile}"
           Expand-Archive $zipname
           Copy-Item "./state/${statefile}" -Destination $statefile
         } else {
@@ -121,7 +121,7 @@ runs:
         if (Test-Path $statefile) {
           if (Test-Path $zipname) {
             $date_str = "{0:s}" -f (get-date)
-            Write-Host "Copying gs://${bucketname}/${repo}/${terraformstatefile} to gs://${bucketname}/${repo}/archive/${terraformstatefile}_${date_str}"
+            Write-Host "Archive gs://${bucketname}/${repo}/${terraformstatefile} to gs://${bucketname}/${repo}/archive/${terraformstatefile}_${date_str}"
             gcloud storage cp --no-user-output-enabled "gs://${bucketname}/${repo}/${terraformstatefile}" "gs://${bucketname}/${repo}/archive/${terraformstatefile}_${date_str}"
           }
 
