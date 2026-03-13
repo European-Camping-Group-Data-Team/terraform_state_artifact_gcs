@@ -1,4 +1,4 @@
-# terraform_state_artifact 
+# terraform_state_artifact_gcs
 The [`European-Camping-Group-Data-Team/terraform_state_artifact_gcs`](https://github.com/European-Camping-Group-Data-Team/terraform_state_artifact_gcs) action is a composite action that stores your Terraform state file as a google storage artifact and downloads and the state on subsequent runs. Built-in are the actions: [`hashicorp/setup-terraform@v4`](https://github.com/hashicorp/setup-terraform).
 
 ## :rocket: What this action does: :rocket:
