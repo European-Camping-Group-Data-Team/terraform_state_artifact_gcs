@@ -9,7 +9,7 @@ inputs:
   apply:
     description: 'terraform apply'
     required: false
-    default: true
+    default: false
   destroy:
     description: 'terraform destroy'
     required: false
@@ -47,13 +47,14 @@ runs:
     - id: terraform
       run: |
         $terraformupload = "${{ inputs.upload }}"
-        if ($terraformupload -eq "true"){
+        if ($terraformupload -eq "true") {
           $terraformuploadfile = "${{ inputs.terraformuploadfile }}"
           Write-Host "Upload from = ./state/$terraformuploadfile"
           Copy-Item "./state/$terraformuploadfile" ./terraform.tfstate
           exit 0
         }
 
+        # Set variables
         $environment = "${{ inputs.environment }}"
         $terraformstatefile = "${{ inputs.terraformstatefile }}"
         $statefile = "terraform.tfstate"
@@ -74,52 +75,42 @@ runs:
           Write-Host "No previous statefile found"
         }
 
+        # Initialize terraform
         terraform init
+
         $path = "./environments/${{ inputs.environment }}/main.tfvars"
         Write-Host "Use tfvars file = $path for environment $environment"
         $terraformapply = "${{ inputs.apply }}"
         $terraformdestroy = "${{ inputs.destroy }}"
-        $custom_plan_flags = "${{ inputs.custom_plan_flags }}"
-        $custom_apply_flags = "${{ inputs.custom_apply_flags }}"
-        $custom_destroy_flags = "${{ inputs.custom_destroy_flags }}"
-        if ($terraformapply -eq "false"){
-          $terraformapply = $false
+
+        # Use plan if no apply or destroy action
+        if (($terraformapply -eq "false") -and ($terraformdestroy -eq "false")) {
+          $custom_plan_flags = "${{ inputs.custom_plan_flags }}"
+          terraform plan -var-file="$path" $custom_plan_flags
         }
-        if ($terraformdestroy -eq "false"){
-          $terraformdestroy = $false
-        }
-        terraform plan -var-file="$path" $custom_plan_flags
-        if ($terraformapply){
+        if ($terraformapply -eq "true") {
+          $custom_apply_flags = "${{ inputs.custom_apply_flags }}"
           terraform apply -auto-approve -var-file="$path" $custom_apply_flags
-
-          $ExitCode = $LastExitCode
-
-          if ($ExitCode -eq 1){
-            exit 1
-          }
         }
-        if ($terraformdestroy){
+        if ($terraformdestroy -eq "true") {
+          $custom_destroy_flags = "${{ inputs.custom_destroy_flags }}"
           terraform apply -destroy -auto-approve -var-file="$path" $custom_destroy_flags
-
-          $ExitCode = $LastExitCode
-
-          if ($ExitCode -eq 1){
-            exit 1
-          }
         }
 
       shell: pwsh
     - name: Archive artifacts
       if: success() || failure()
       run: |
-        $environment = "${{ inputs.environment }}"
-        $terraformstatefile = "${{ inputs.terraformstatefile }}"
-        $statefile = "terraform.tfstate"
-        $repo = "${{ github.repository }}"
-        $bucketname = "${{ inputs.bucket }}"
-        $zipname = "state.zip"
-
+        # Statefile present?
         if (Test-Path $statefile) {
+          # Set variables
+          $terraformstatefile = "${{ inputs.terraformstatefile }}"
+          $statefile = "terraform.tfstate"
+          $repo = "${{ github.repository }}"
+          $bucketname = "${{ inputs.bucket }}"
+          $zipname = "state.zip"
+
+          # Previous zipfile present, if so archive
           if (Test-Path $zipname) {
             $date_str = "{0:s}" -f (get-date)
             Write-Host "Archive gs://${bucketname}/${repo}/${terraformstatefile} to gs://${bucketname}/${repo}/archive/${terraformstatefile}_${date_str}"
