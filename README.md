@@ -2,19 +2,17 @@
 [![Terraform State Artifact](https://github.com/sturlabragason/terraform_state_artifact/actions/workflows/terraform.yml/badge.svg)](https://github.com/sturlabragason/terraform_state_artifact/actions/workflows/terraform.yml)
   `#actionshackathon21`
 
-The [`European-Camping-Group-Data-Team/terraform_state_artifact`](https://github.com/European-Camping-Group-Data-Team//terraform_state_artifact) action is a composite action that stores your Terraform state file as an encrypted Github workflow artifact and downloads and decrypts the state on subsequent runs. Built-in are the actions: [`actions/checkout@v4`](https://github.com/actions/checkout), [`hashicorp/setup-terraform@v3`](https://github.com/hashicorp/setup-terraform) and [`actions/upload-artifact@v4`](https://github.com/actions/upload-artifact).
-
-Be aware that [Github deletes artifacts older then 90 days](https://docs.github.com/en/organizations/managing-organization-settings/configuring-the-retention-period-for-github-actions-artifacts-and-logs-in-your-organization) by default. You can [run your pipeline on a schedule](https://docs.github.com/en/actions/learn-github-actions/events-that-trigger-workflows#scheduled-events) to create a new artifact at least once every 90 or 400 days.
+The [`European-Camping-Group-Data-Team/terraform_state_artifact_gcs`](https://github.com/European-Camping-Group-Data-Team/terraform_state_artifact_gcs) action is a composite action that stores your Terraform state file as an google storage artifact and downloads and the state on subsequent runs. Built-in are the actions: [`hashicorp/setup-terraform@v4`](https://github.com/hashicorp/setup-terraform).
 
 ## [:rocket: What this action does: :rocket:](https://dev.to/sturlabragason/terraformstateartifact-github-action-keeping-the-statefile-with-to-your-code-4d3b)
 
-- 🛠️ First off, it downloads your repository with [`actions/checkout@v4`](https://github.com/actions/checkout) and then installs terraform using [`hashicorp/setup-terraform@v3`](https://github.com/hashicorp/setup-terraform).
-- :inbox_tray: Using [environment variables](https://docs.github.com/en/actions/learn-github-actions/environment-variables) it downloads the most recent [workflow artifact](https://docs.github.com/en/actions/advanced-guides/storing-workflow-data-as-artifacts) called `terraformstatefile` and decrypts using the user input variable `encryptionkey`.
+- 🛠️ It installs terraform using [`hashicorp/setup-terraform@v4`](https://github.com/hashicorp/setup-terraform).
+- :inbox_tray: Using [environment variables](https://docs.github.com/en/actions/learn-github-actions/environment-variables) it downloads the most recent [workflow artifact](https://docs.github.com/en/actions/advanced-guides/storing-workflow-data-as-artifacts) called `terraformstatefile`.
   - If no artifact with that name is found (maybe it's your first run) then it proceeds with the following.
 - :building_construction: It then proceeds to run `terraform plan` with any flags from the optional variable `custom_plan_flags`
 - 🏢 Next it runs `terraform apply` with any flags from the optional variable`custom_apply_flags`.
   - This can be skipped by setting the optional variable `apply` to `false`.
-- 🗃️ If all is well then Terraform has now produced a statefile `./terraform.tfstate`. This file is encrypted using the provided `encryptionkey`.
+- 🗃️ If all is well then Terraform has now produced a statefile `./terraform.tfstate`.
     - 🤫 I'd recommend getting this from a [`${{secret.variable}}`](https://docs.github.com/en/actions/security-guides/encrypted-secrets) since the output isn't hidden.
 - 💾 Finally the new statefile is uploaded as an artifact!
 #### - :tada: Lather, rinse, repeat! :tada:
@@ -24,40 +22,43 @@ Be aware that [Github deletes artifacts older then 90 days](https://docs.github.
 
 ```yaml
 steps:
-- uses: European-Camping-Group-Data-Team/terraform_state_artifact@v1
+- uses: European-Camping-Group-Data-Team/terraform_state_artifact_gcs@v1
     with:
-        encryptionkey: ${{ secrets.encryptionkey }}
+        environment: 'dev'
 ```
 
 You can choose to skip `terraform apply`:
 
 ```yaml
 steps:
-- uses: European-Camping-Group-Data-Team/terraform_state_artifact@v1
+- uses: European-Camping-Group-Data-Team/terraform_state_artifact_gcs@v1
     with:
-        encryptionkey: ${{ secrets.encryptionkey }}
+        environment: 'dev'
         apply: false
+        terraformstatefile: 'terraformstatefile-dev'
 ```
 
 You can choose to add custom flags to `terraform plan`:
 
 ```yaml
 steps:
-- uses: European-Camping-Group-Data-Team/terraform_state_artifact@v1
+- uses: European-Camping-Group-Data-Team/terraform_state_artifact_gcs@v1
     with:
-        encryptionkey: ${{ secrets.encryptionkey }}
+        environment: 'dev'
         apply: false
         custom_plan_flags: '-refresh-only'
+        terraformstatefile: 'terraformstatefile-dev'
 ```
 
 You can choose to add custom flags to `terraform apply`:
 
 ```yaml
 steps:
-- uses: European-Camping-Group-Data-Team/terraform_state_artifact@v1
+- uses: European-Camping-Group-Data-Team/terraform_state_artifact_gcs@v1
     with:
-        encryptionkey: ${{ secrets.encryptionkey }}
+        environment: 'dev'
         custom_apply_flags: '-no-color'
+        terraformstatefile: 'terraformstatefile-dev'
 ```
 
 ## Inputs v1
@@ -67,70 +68,14 @@ The action supports the following inputs:
 | Variable        | Description                                                                                                                             | Default |
 |-----------------|-----------------------------------------------------------------------------------------------------------------------------------------|---------|
 | `encryptionkey` | An encryption key to use when encrypting the statefile. Recommended to use a secret value.                                              |   N/A   |
-| `apply`         | (optional) Whether to run the `terraform apply` command.               | `true`  |
-| `custom_plan_flags`         | (optional) Add a custom flag to the `terraform plan` command.               | `''`  |
-| `custom_apply_flags`         | (optional) Add a custom flag to the `terraform apply` command.               | `''`  |
-
-## Usage v2 (Environment support)
-
-```yaml
-steps:
-- uses: European-Camping-Group-Data-Team/terraform_state_artifact@v2
-    with:
-        encryptionkey: ${{ secrets.encryptionkey }}
-        environment: 'dev'
-        terraformstatefile: 'terraformstatefile-dev'
-```
-
-You can choose to skip `terraform apply`:
-
-```yaml
-steps:
-- uses: European-Camping-Group-Data-Team/terraform_state_artifact@v2
-    with:
-        encryptionkey: ${{ secrets.encryptionkey }}
-        apply: false
-        environment: 'prod'
-        terraformstatefile: 'terraformstatefile'
-```
-
-You can choose to add custom flags to `terraform plan`:
-
-```yaml
-steps:
-- uses: European-Camping-Group-Data-Team/terraform_state_artifact@v2
-    with:
-        encryptionkey: ${{ secrets.encryptionkey }}
-        apply: false
-        custom_plan_flags: '-refresh-only'
-        environment: 'prod'
-        terraformstatefile: 'terraformstatefile'
-```
-
-You can choose to add custom flags to `terraform apply`:
-
-```yaml
-steps:
-- uses: European-Camping-Group-Data-Team/terraform_state_artifact@v2
-    with:
-        encryptionkey: ${{ secrets.encryptionkey }}
-        custom_apply_flags: '-no-color'
-        environment: 'prod'
-        terraformstatefile: 'terraformstatefile'
-```
-
-## Inputs v2
-
-The action supports the following inputs:
-
-| Variable        | Description                                                                                                                             | Default |
-|-----------------|-----------------------------------------------------------------------------------------------------------------------------------------|---------|
-| `encryptionkey` | An encryption key to use when encrypting the statefile. Recommended to use a secret value.                                              |   N/A   |
 | `environment`         | Environment to use (dev, staging or prod).               | N/A  |
 | `terraformstatefile`         | Terraform statefile to use (terraformstatefile-dev, terraformstatefile-staging, terraformstatefile).               | N/A  |
 | `apply`         | (optional) Whether to run the `terraform apply` command.               | `true`  |
+| `destroy`       | (optional) Whether to run the `terraform apply -destroy` command.               | `false`  |
+| `upload`         | (optional) Upload artifact file.               | `false`  |
 | `custom_plan_flags`         | (optional) Add a custom flag to the `terraform plan` command.               | `''`  |
 | `custom_apply_flags`         | (optional) Add a custom flag to the `terraform apply` command.               | `''`  |
+| `custom_destroy_flags`         | (optional) Add a custom flag to the `terraform apply -destroy` command.               | `''`  |
 
 ## License
 
