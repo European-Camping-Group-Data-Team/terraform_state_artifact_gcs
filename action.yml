@@ -61,10 +61,12 @@ runs:
         $repo = "${{ github.repository }}"
         $bucketname = "${{ inputs.bucket }}"
         $zipname = "state.zip"
-        gcloud storage cp --verbosity=none "gs://${bucketname}/${repo}/${terraformstatefile}" "${zipname}"
+        Write-Host "Copying gs://${bucketname}/${repo}/${terraformstatefile} to ${zipname}"
+        gcloud storage cp --verbosity=none --no-user-output-enabled "gs://${bucketname}/${repo}/${terraformstatefile}" "${zipname}"
 
         if (Test-Path $zipname) {
           # Decompress statefile
+          Write-Host "Decompress statefile to ${statefile}"
           Expand-Archive $zipname
           Copy-Item "./state/${statefile}" -Destination $statefile
         } else {
@@ -92,11 +94,6 @@ runs:
           $ExitCode = $LastExitCode
 
           if ($ExitCode -eq 1){
-            $StateExists = Test-Path -Path ./terraform.tfstate -PathType Leaf
-            if ($StateExists){
-              openssl enc -in ./terraform.tfstate -aes-256-cbc -pbkdf2 -pass pass:"${{ inputs.encryptionkey }}" -out ./terraform.tfstate.enc
-            }
-
             exit 1
           }
         }
@@ -106,17 +103,8 @@ runs:
           $ExitCode = $LastExitCode
 
           if ($ExitCode -eq 1){
-            $StateExists = Test-Path -Path ./terraform.tfstate -PathType Leaf
-            if ($StateExists){
-              openssl enc -in ./terraform.tfstate -aes-256-cbc -pbkdf2 -pass pass:"${{ inputs.encryptionkey }}" -out ./terraform.tfstate.enc
-            }
-
             exit 1
           }
-        }
-        $StateExists = Test-Path -Path ./terraform.tfstate -PathType Leaf
-        if ($StateExists){
-          openssl enc -in ./terraform.tfstate -aes-256-cbc -pbkdf2 -pass pass:"${{ inputs.encryptionkey }}" -out ./terraform.tfstate.enc
         }
 
       shell: pwsh
@@ -133,13 +121,16 @@ runs:
         if (Test-Path $statefile) {
           if (Test-Path $zipname) {
             $date_str = "{0:s}" -f (get-date)
-            gcloud storage cp "gs://${bucketname}/${repo}/${terraformstatefile}" "gs://${bucketname}/${repo}/archive/${terraformstatefile}_${date_str}"
+            Write-Host "Copying gs://${bucketname}/${repo}/${terraformstatefile} to gs://${bucketname}/${repo}/archive/${terraformstatefile}_${date_str}"
+            gcloud storage cp --no-user-output-enabled "gs://${bucketname}/${repo}/${terraformstatefile}" "gs://${bucketname}/${repo}/archive/${terraformstatefile}_${date_str}"
           }
 
           # Compress statefile
+          Write-Host "Compress ${statefile} to ${zipname}"
           Compress-Archive -Force -LiteralPath $statefile -CompressionLevel Optimal -DestinationPath $zipname
 
-          gcloud storage cp $zipname "gs://${bucketname}/${repo}/${terraformstatefile}"
+          Write-Host "Copying $zipname to gs://${bucketname}/${repo}/${terraformstatefile}"
+          gcloud storage cp --no-user-output-enabled $zipname "gs://${bucketname}/${repo}/${terraformstatefile}"
         } else {
           Write-Host "No statefile"
         }
